@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"syscall"
 
-	"uds/app"
-	"uds/tcp"
-	"uds/udss"
-	"uds/utils"
+	"github.com/ifig4fireghost/uds/app"
+	"github.com/ifig4fireghost/uds/tcp"
+	"github.com/ifig4fireghost/uds/udss"
+	"github.com/ifig4fireghost/uds/utils"
 )
 
 func main() {

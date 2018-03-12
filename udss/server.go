@@ -9,7 +9,7 @@ import (
 	"sync"
 	"syscall"
 
-	"uds/utils"
+	"github.com/ifig4fireghost/uds/utils"
 )
 
 const (

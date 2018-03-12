@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"uds/utils"
+	"github.com/ifig4fireghost/uds/utils"
 )
 
 type App interface {

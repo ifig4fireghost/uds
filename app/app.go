@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"uds/tcp"
-	"uds/utils"
+	"github.com/ifig4fireghost/uds/tcp"
+	"github.com/ifig4fireghost/uds/utils"
 )
 
 const (
