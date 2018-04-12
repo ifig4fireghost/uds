@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ifig4fireghost/uds/tcp"
 	"github.com/ifig4fireghost/uds/utils"
 )
 
@@ -29,6 +28,7 @@ type Processor interface {
 }
 
 type UDSProcessor struct {
+	processor *TCPProcessor
 }
 
 type TCPProcessor struct {
@@ -47,7 +47,7 @@ func NewApp(t int) Processor {
 
 func (app *UDSProcessor) Do(conn net.Conn) {
 	defer conn.Close()
-
+	app.processor = &TCPProcessor{}
 	io.WriteString(logfile, "Eastablished connection @"+time.Now().String()+"\n")
 	BufLength := 1024
 	for {
@@ -86,7 +86,7 @@ func (app *UDSProcessor) Do(conn net.Conn) {
 					goto OVER
 				case "connect":
 					if len(cmd) == 3 {
-						go tcp.Start(cmd[2], cmd[3])
+						//go tcp.Start(cmd[2], cmd[3])
 					} else {
 						io.WriteString(logfile, "connect: parameter num must be 3\n")
 					}
@@ -104,6 +104,7 @@ OVER:
 
 func (app *UDSProcessor) OnSignal(sig int) {
 	io.WriteString(logfile, "uds received signal:"+strconv.Itoa(sig)+"\n")
+	app.processor.OnSignal(sig)
 	if sig == utils.SIG_EXIT {
 		logfile.Sync()
 		logfile.Close()
@@ -123,5 +124,16 @@ func (app *TCPProcessor) OnSignal(sig int) {
 	if sig == utils.SIG_EXIT {
 		logfile.Sync()
 		logfile.Close()
+	}
+}
+
+func (app *TCPProcessor) Start(ip string, port string) {
+	server := ip + ":" + port
+	conn, err := net.DialTimeout("tcp4", server, time.Second*3)
+	if err != nil {
+		fatal(err, TCP_CREATE_ERROR)
+	} else {
+		io.WriteString(logfile, "connect success\n")
+		mapp.Do(conn)
 	}
 }

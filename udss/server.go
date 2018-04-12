@@ -37,6 +37,7 @@ var logfile *os.File
 var mapp App
 var channel_to_main chan<- int
 var channel_from_main <-chan int
+
 var once sync.Once
 
 func fatal(err error, ret int) {
