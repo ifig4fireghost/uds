@@ -88,6 +88,7 @@ func (app *UDSProcessor) Do(conn net.Conn) {
 				case "QT":
 					if app.processor.is_connected {
 						app.processor.conn.Close()
+						io.WriteString(logfile, "tcp connection closed\n")
 					}
 					goto OVER
 				case "CT":
@@ -100,7 +101,6 @@ func (app *UDSProcessor) Do(conn net.Conn) {
 							} else {
 								io.WriteString(logfile, "connect failed\n")
 								conn.Write(utils.Write("CF"))
-
 							}
 						}
 					} else {
@@ -111,7 +111,7 @@ func (app *UDSProcessor) Do(conn net.Conn) {
 					if len(cmd) == 2 {
 						if !app.processor.is_connected {
 							conn.Write(utils.Write("NC"))
-							io.WriteString(logfile, "connect first\n")
+							io.WriteString(logfile, "make connect first\n")
 						} else {
 							ret := app.processor.Get(cmd[1])
 							if ret != nil {
@@ -142,8 +142,27 @@ func (app *TCPProcessor) Do(conn net.Conn) {
 	return
 }
 
+func read_data(conn *net.TCPConn) []byte {
+	BufLength := 10240
+	recv := make([]byte, 0)
+	buf := make([]byte, BufLength)
+
+	n, err := conn.Read(buf)
+	if err != nil && err != io.EOF {
+		return nil
+	}
+	if n > 0 {
+		recv = append(recv, buf[:n]...)
+	}
+	return recv
+}
+
 func (app *TCPProcessor) Get(para string) []byte {
-	return nil
+	_, err := app.conn.Write([]byte(para))
+	if err != nil {
+		return nil
+	}
+	return read_data(app.conn)
 }
 
 func (app *TCPProcessor) OnSignal(sig int) {
