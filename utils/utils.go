@@ -20,6 +20,14 @@ func Quit(ret int) {
 	os.Exit(ret)
 }
 
+func Read(src []byte) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(string(src))
+}
+
+func Write(src string) []byte {
+	return []byte(base64.StdEncoding.EncodeToString([]byte(src)) + "\n")
+}
+
 func Decode(src string) ([]byte, error) {
 	data, err := base64.StdEncoding.DecodeString(src)
 	if err != nil {

@@ -32,14 +32,17 @@ type UDSProcessor struct {
 }
 
 type TCPProcessor struct {
+	is_connected bool
+
+	conn *net.TCPConn
 }
 
 func NewApp(t int) Processor {
 	switch t {
 	case TYPE_UDS:
-		return &UDSProcessor{}
+		return &UDSProcessor{nil}
 	case TYPE_TCP:
-		return &TCPProcessor{}
+		return &TCPProcessor{false, nil}
 	default:
 		return nil
 	}
@@ -47,8 +50,8 @@ func NewApp(t int) Processor {
 
 func (app *UDSProcessor) Do(conn net.Conn) {
 	defer conn.Close()
-	app.processor = &TCPProcessor{}
-	io.WriteString(logfile, "Eastablished connection @"+time.Now().String()+"\n")
+	app.processor = NewApp(TYPE_TCP).(*TCPProcessor)
+	io.WriteString(logfile, "Connection @"+time.Now().String()+"\n")
 	BufLength := 1024
 	for {
 		recv := make([]byte, 0)
@@ -68,7 +71,7 @@ func (app *UDSProcessor) Do(conn net.Conn) {
 			}
 		}
 		io.WriteString(logfile, string(recv)+"\n")
-		data, err := utils.Decode(string(recv))
+		data, err := utils.Read(recv)
 		if err != nil {
 			continue
 		}
@@ -78,23 +81,47 @@ func (app *UDSProcessor) Do(conn net.Conn) {
 		for _, v := range cmds {
 			cmd := strings.Split(string(v), "=")
 			switch cmd[0] {
-			case "cmd":
+			case "C":
 				switch cmd[1] {
-				case "keep":
+				case "KP":
 					io.WriteString(logfile, "recv keep from "+conn.RemoteAddr().String()+"reset timer @"+time.Now().String()+"\n")
-				case "quit":
+				case "QT":
+					if app.processor.is_connected {
+						app.processor.conn.Close()
+					}
 					goto OVER
-				case "connect":
+				case "CT":
 					if len(cmd) == 3 {
-						//go tcp.Start(cmd[2], cmd[3])
+						if app.processor.is_connected {
+							conn.Write(utils.Write("CA"))
+						} else {
+							if app.processor.Start(cmd[2]) {
+								conn.Write(utils.Write("CD"))
+							} else {
+								io.WriteString(logfile, "connect failed\n")
+								conn.Write(utils.Write("CF"))
+
+							}
+						}
 					} else {
-						io.WriteString(logfile, "connect: parameter num must be 3\n")
+						conn.Write(utils.Write("PF"))
+						io.WriteString(logfile, "connect: parameter num not match\n")
 					}
 				default:
-					conn.Write([]byte(utils.Encode([]byte("NotSupport:" + cmd[1]))))
+					if len(cmd) == 2 {
+						if !app.processor.is_connected {
+							conn.Write(utils.Write("NC"))
+							io.WriteString(logfile, "connect first\n")
+						} else {
+							ret := app.processor.Get(cmd[1])
+							if ret != nil {
+								conn.Write(utils.Write(string(ret)))
+							} else {
+								conn.Write(utils.Write("NA"))
+							}
+						}
+					}
 				}
-			case "data":
-				conn.Write([]byte(utils.Encode([]byte(cmd[1]))))
 			}
 		}
 	}
@@ -112,11 +139,11 @@ func (app *UDSProcessor) OnSignal(sig int) {
 }
 
 func (app *TCPProcessor) Do(conn net.Conn) {
-	defer func() {
-		conn.Close()
-		io.WriteString(logfile, "connection closed\n")
-	}()
-	io.WriteString(logfile, "Eastablished connection with "+conn.RemoteAddr().String()+"@"+time.Now().String()+"\n")
+	return
+}
+
+func (app *TCPProcessor) Get(para string) []byte {
+	return nil
 }
 
 func (app *TCPProcessor) OnSignal(sig int) {
@@ -127,13 +154,14 @@ func (app *TCPProcessor) OnSignal(sig int) {
 	}
 }
 
-func (app *TCPProcessor) Start(ip string, port string) {
-	server := ip + ":" + port
+func (app *TCPProcessor) Start(server string) bool {
 	conn, err := net.DialTimeout("tcp4", server, time.Second*3)
 	if err != nil {
-		fatal(err, TCP_CREATE_ERROR)
+		return false
 	} else {
 		io.WriteString(logfile, "connect success\n")
-		mapp.Do(conn)
+		app.is_connected = true
+		app.conn = conn.(*net.TCPConn)
+		return true
 	}
 }
