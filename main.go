@@ -17,7 +17,7 @@ func main() {
 	maxProcs := runtime.NumCPU()
 	runtime.GOMAXPROCS(maxProcs)
 
-	logfile, _ := os.Create("main.log")
+	logfile, _ := os.Create(".main-log")
 	c := make(chan os.Signal)
 	channel_uds := make(chan int)
 

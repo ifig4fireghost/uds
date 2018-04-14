@@ -19,7 +19,7 @@ const (
 var logfile *os.File
 
 func init() {
-	logfile, _ = os.Create("app.log")
+	logfile, _ = os.Create(".app-log")
 }
 
 type Processor interface {

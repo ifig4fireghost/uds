@@ -56,7 +56,7 @@ func ReceivedSignal(sig int) {
 }
 
 func setup(app App, ch chan<- int, cf <-chan int) {
-	logfile, _ = os.Create("uds.log")
+	logfile, _ = os.Create(".uds-log")
 	mapp = app
 	channel_to_main = ch
 	channel_from_main = cf
